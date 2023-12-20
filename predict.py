@@ -27,7 +27,6 @@ class Predictor(BasePredictor):
 
         # Assume the conversion script is in the same directory and callable
         # Define paths for the converted model and model to convert
-        model_to_convert_path = os.path.join(extracted_folder_path, "model.ckpt")
         converted_model_path = "/tmp/converted_model.ckpt"
 
         # Run the conversion script
@@ -36,7 +35,7 @@ class Predictor(BasePredictor):
                 "python",
                 "convert_diffusers_to_original_stable_diffusion.py",
                 "--model_path",
-                model_to_convert_path,
+                extracted_folder_path,
                 "--checkpoint_path",
                 converted_model_path,
                 "--half",
