@@ -1,13 +1,25 @@
-# flake8: noqa E501
 import subprocess
 import os
+import boto3
 from cog import BasePredictor, Input, Path
 
 
 class Predictor(BasePredictor):
     def predict(
-        self, model_url: str = Input(description="URL of the Diffusers model zip file")
-    ) -> Path:
+        self,
+        model_url: str = Input(description="URL of the Diffusers model zip file"),
+        s3_bucket: str = Input(
+            default=None, description="S3 bucket to store the converted model"
+        ),
+        s3_key: str = Input(
+            default=None, description="S3 key to store the converted model"
+        ),
+        aws_access_key_id: str = Input(default=None, description="AWS access key ID"),
+        aws_secret_access_key: str = Input(
+            default=None, description="AWS secret access key"
+        ),
+        aws_region: str = Input(default=None, description="AWS region"),
+    ) -> str:
         """Run a single prediction on the model"""
 
         # Define the local file paths
@@ -25,8 +37,7 @@ class Predictor(BasePredictor):
             ["unzip", zip_file_path, "-d", extracted_folder_path], check=True
         )
 
-        # Assume the conversion script is in the same directory and callable
-        # Define paths for the converted model and model to convert
+        # Define paths for the converted model
         converted_model_path = "/tmp/converted_model.ckpt"
 
         # Run the conversion script
@@ -43,5 +54,30 @@ class Predictor(BasePredictor):
             check=True,
         )
 
-        # Return the path to the converted model
-        return Path(converted_model_path)
+        # Check if S3 parameters are provided
+        if (
+            s3_bucket
+            and s3_key
+            and aws_access_key_id
+            and aws_secret_access_key
+            and aws_region
+        ):
+            # Create an S3 client with provided credentials
+            s3_client = boto3.client(
+                "s3",
+                aws_access_key_id=aws_access_key_id,
+                aws_secret_access_key=aws_secret_access_key,
+                region_name=aws_region,
+            )
+
+            # Upload the file to the specified bucket
+            s3_client.upload_file(converted_model_path, s3_bucket, s3_key)
+
+            # Construct the URL of the uploaded file
+            s3_url = f"https://{s3_bucket}.s3.{aws_region}.amazonaws.com/{s3_key}"
+
+            return s3_url
+
+        else:
+            # If S3 parameters are not provided, return local path
+            return converted_model_path
