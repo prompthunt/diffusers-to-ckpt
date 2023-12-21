@@ -11,6 +11,7 @@ build:
   python_packages:
     - torch
     - safetensors
+    - boto3
 
 # predict.py defines how predictions are run on your model
 predict: "predict.py:Predictor"
